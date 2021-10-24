@@ -17,6 +17,7 @@ import edu.wpi.first.wpilibj.shuffleboard.BuiltInWidgets;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 
+// make sure to refresh the shuffleboard window to view the changes!!
 public class HSVConfigTab {
 
     private NetworkTableEntry hLow;
@@ -27,6 +28,8 @@ public class HSVConfigTab {
     private NetworkTableEntry vHigh;
 
     private String filepath;
+    private String tabName;
+
     private ShuffleboardTab tab;
     // json object representing the config file (used in both reading and writing)
     private JSONObject jsonObj;
@@ -41,7 +44,7 @@ public class HSVConfigTab {
      * @param tabName  name of the config tab
      */
     public HSVConfigTab(String filepath, String tabName) {
-        tab = Shuffleboard.getTab(tabName);
+        this.tabName = tabName;
         this.filepath = filepath;
     }
 
@@ -49,13 +52,16 @@ public class HSVConfigTab {
      * Initializes the config tab with the six sliders.
      */
     public void init() {
+        tab = Shuffleboard.getTab(tabName);
 
         JSONParser parser = new JSONParser();
 
         try {
             FileReader reader = new FileReader(new File(filepath));
             jsonObj = (JSONObject) parser.parse(reader);
-
+            Shuffleboard.getTab("Drive").add("Max Speed", 1).withWidget(BuiltInWidgets.kNumberSlider)
+                    .withProperties(Map.of("min", 0, "max", 1)) // specify widget properties here
+                    .getEntry();
             hLow = createSliderEntry("h_low");
             sLow = createSliderEntry("s_low");
             vLow = createSliderEntry("v_low");
@@ -81,12 +87,11 @@ public class HSVConfigTab {
         // retrieve nested json object associated with key
         JSONObject obj = (JSONObject) jsonObj.get(key);
 
-        String name = obj.get("name").toString();
-        double val = ((Double) obj.get("val")).doubleValue();
-        double min = ((Double) obj.get("min")).doubleValue();
-        double max = ((Double) obj.get("max")).doubleValue();
+        double val = ((Long) obj.get("val")).doubleValue();
+        double min = ((Long) obj.get("min")).doubleValue();
+        double max = ((Long) obj.get("max")).doubleValue();
 
-        return tab.add(name, val).withWidget(BuiltInWidgets.kNumberSlider)
+        return Shuffleboard.getTab(tabName).add(key, val).withWidget(BuiltInWidgets.kNumberSlider)
                 .withProperties(Map.of("min", min, "max", max)).getEntry();
     }
 
@@ -117,17 +122,12 @@ public class HSVConfigTab {
      * testing HSV values through the GUI and saving them for future runs.
      */
     public void save() {
-        // creating this parameterized Hashmap avoids type safety warnings
-        HashMap<String, Double> hsvObj = new HashMap<String, Double>();
-
-        hsvObj.put("h_low", ntToDouble(hLow));
-        hsvObj.put("s_low", ntToDouble(sLow));
-        hsvObj.put("v_low", ntToDouble(vLow));
-        hsvObj.put("h_high", ntToDouble(hHigh));
-        hsvObj.put("s_high", ntToDouble(sHigh));
-        hsvObj.put("v_high", ntToDouble(vHigh));
-
-        jsonObj = new JSONObject(hsvObj);
+        ((JSONObject) jsonObj.get("h_low")).put("val", ntToDouble(hLow));
+        ((JSONObject) jsonObj.get("s_low")).put("val", ntToDouble(sLow));
+        ((JSONObject) jsonObj.get("v_low")).put("val", ntToDouble(vLow));
+        ((JSONObject) jsonObj.get("h_high")).put("val", ntToDouble(hHigh));
+        ((JSONObject) jsonObj.get("s_high")).put("val", ntToDouble(sHigh));
+        ((JSONObject) jsonObj.get("v_high")).put("val", ntToDouble(vHigh));
 
         FileWriter file;
         try {

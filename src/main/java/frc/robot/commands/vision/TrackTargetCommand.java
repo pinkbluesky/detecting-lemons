@@ -1,7 +1,13 @@
 package frc.robot.commands.vision;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
 import edu.wpi.first.wpilibj2.command.CommandBase;
@@ -14,7 +20,7 @@ public class TrackTargetCommand extends CommandBase {
     private Mat image;
     private Mat imageHSV;
 
-    public static final String HSV_CONFIG_FILE_PATH = "/src/main/java/frc/robot/commands/vision/lemon_config.json";
+    public static final String HSV_CONFIG_FILE_PATH = "src/main/java/frc/robot/commands/vision/lemon_config.json";
 
     private HSVConfigTab hsvTab;
 
@@ -39,11 +45,21 @@ public class TrackTargetCommand extends CommandBase {
         // use camera stream from vision subsystem to find lemon coordinates
         visionSubsystem.getCvSink().grabFrame(image);
 
+        // check that image is not null; sometimes the camera stream takes time to load
         if (!image.empty()) {
             Imgproc.cvtColor(image, imageHSV, Imgproc.COLOR_BGR2HSV);
-            Mat thresh = new Mat();
-            Core.inRange(imageHSV, hsvTab.getLowScalar(), hsvTab.getHighScalar(), thresh);
-            visionSubsystem.getOutputStream().putFrame(thresh);
+            Mat colorThresh = new Mat();
+            // filter yellow color
+            Core.inRange(imageHSV, hsvTab.getLowScalar(), hsvTab.getHighScalar(), colorThresh);
+
+            List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+
+            Imgproc.findContours(colorThresh, contours, new Mat(), Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_NONE);
+
+            Mat contourImg = new Mat(colorThresh.size(), colorThresh.type());
+            Imgproc.drawContours(contourImg, contours, -1, new Scalar(255, 0, 0), 5);
+
+            visionSubsystem.getOutputStream().putFrame(contourImg);
         }
     }
 
@@ -53,6 +69,9 @@ public class TrackTargetCommand extends CommandBase {
     }
 
     @Override
+    /**
+     * 
+     */
     public void end(boolean interrupted) {
 
         // save HSV values from Shuffleboard slider into config file
