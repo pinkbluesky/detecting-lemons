@@ -9,6 +9,8 @@ import edu.wpi.cscore.CvSource;
 public class VisionSubsystem extends SubsystemBase {
     private CvSink cvSink;
     private CvSource outputStream;
+    private CvSource outputStream2;
+    private CvSource outputStream3;
 
     public VisionSubsystem() {
         CommandScheduler.getInstance().registerSubsystem(this); // allows periodic
@@ -30,6 +32,14 @@ public class VisionSubsystem extends SubsystemBase {
         return outputStream;
     }
 
+    public CvSource getOutputStream2() {
+        return outputStream2;
+    }
+
+    public CvSource getOutputStream3() {
+        return outputStream3;
+    }
+
     @Override
     public void simulationPeriodic() {
         // This method will be called once per scheduler run during simulation
@@ -49,6 +59,8 @@ public class VisionSubsystem extends SubsystemBase {
 
         // Creates the CvSource and MjpegServer [2] and connects them
         outputStream = CameraServer.getInstance().putVideo("Output Stream", 640, 480);
+        outputStream2 = CameraServer.getInstance().putVideo("Output Stream 2", 640, 480);
+        outputStream3 = CameraServer.getInstance().putVideo("Output Stream 3", 640, 480);
     }
 
 }
