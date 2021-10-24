@@ -1,0 +1,17 @@
+{
+  "board_width": 7,
+  "board_height": 9,
+  "square_size": 20,
+  "calib_pattern": "CHESSBOARD",
+  "calib_images": [
+    "images\\camera_calibration\\chess_test01.jpg",
+    "images\\camera_calibration\\chess_test02.jpg",
+    "images\\camera_calibration\\chess_test03.jpg",
+    "images\\camera_calibration\\chess_test04.jpg",
+    "images\\camera_calibration\\chess_test05.jpg",
+    "images\\camera_calibration\\chess_test06.jpg",
+    "images\\camera_calibration\\chess_test07.jpg",
+    "images\\camera_calibration\\chess_test08.jpg"
+  ],
+  "nr_frames": 8
+}
