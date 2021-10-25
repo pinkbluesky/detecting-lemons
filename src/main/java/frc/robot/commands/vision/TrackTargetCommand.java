@@ -23,7 +23,6 @@ public class TrackTargetCommand extends CommandBase {
     private final VisionSubsystem visionSubsystem;
 
     private Mat image;
-    private Mat imageHSV;
 
     public static final String HSV_CONFIG_FILE_PATH = "src/main/java/frc/robot/commands/vision/lemon_config.json";
 
@@ -34,7 +33,6 @@ public class TrackTargetCommand extends CommandBase {
         addRequirements(visionSubsystem);
 
         image = new Mat();
-        imageHSV = new Mat();
 
         hsvTab = new HSVConfigTab(HSV_CONFIG_FILE_PATH, "Lemon Detection");
 
@@ -87,7 +85,7 @@ public class TrackTargetCommand extends CommandBase {
 
             // fifth: edge detection
             Mat cannyEdgeImg = new Mat();
-            Imgproc.Canny(grayscaleImg, cannyEdgeImg, 5, 100, 3);
+            Imgproc.Canny(grayscaleImg, cannyEdgeImg, 50, 100, 3);
 
             // sixth: find circles and draw them on the image
             Mat circles = new Mat();
@@ -97,11 +95,29 @@ public class TrackTargetCommand extends CommandBase {
             for (int x = 0; x < circles.cols(); x++) {
                 double[] c = circles.get(0, x);
                 Point center = new Point(Math.round(c[0]), Math.round(c[1]));
+
                 // draw circle center
                 Imgproc.circle(undistImg, center, 1, new Scalar(255, 0, 255), 3, 8, 0);
+
                 // draw circle outline
                 int radius = (int) Math.round(c[2]);
                 Imgproc.circle(undistImg, center, radius, new Scalar(255, 0, 255), 3, 8, 0);
+
+                // calculate world coordinates of center point
+                double[] cameraPoints = { center.x, center.y, 1 };
+                Mat cameraXYZ = new Mat(3, 1, cameraMatrix.type());
+                cameraXYZ.put(0, 0, cameraPoints);
+
+                // Mat cameraMatrixT = new Mat();
+                // Core.transpose(cameraMatrix, cameraMatrixT);
+                Mat worldXYZ = new Mat();
+                Core.gemm(cameraMatrix, cameraXYZ, 1, new Mat(), 0, worldXYZ);
+
+                String coordText = "(" + worldXYZ.get(0, 0)[0] + ", " + worldXYZ.get(1, 0)[0] + ", "
+                        + worldXYZ.get(2, 0)[0] + ")";
+                Imgproc.putText(undistImg, coordText, center, Core.FONT_HERSHEY_PLAIN, 2, new Scalar(255, 0, 255));
+
+                System.out.println(coordText);
             }
 
             // put images on output stream

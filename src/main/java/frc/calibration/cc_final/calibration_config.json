@@ -1,0 +1,19 @@
+{
+    "board_width": 6,
+    "board_height": 9,
+    "square_size": 22,
+    "calib_pattern": "CHESSBOARD",
+    "calib_images": [
+        "src\\main\\java\\frc\\calibration\\cc_final\\chess_test01.jpg",
+        "src\\main\\java\\frc\\calibration\\cc_final\\chess_test02.jpg",
+        "src\\main\\java\\frc\\calibration\\cc_final\\chess_test03.jpg",
+        "src\\main\\java\\frc\\calibration\\cc_final\\chess_test04.jpg",
+        "src\\main\\java\\frc\\calibration\\cc_final\\chess_test05.jpg",
+        "src\\main\\java\\frc\\calibration\\cc_final\\chess_test06.jpg",
+        "src\\main\\java\\frc\\calibration\\cc_final\\chess_test07.jpg",
+        "src\\main\\java\\frc\\calibration\\cc_final\\chess_test08.jpg",
+        "src\\main\\java\\frc\\calibration\\cc_final\\chess_test09.jpg",
+        "src\\main\\java\\frc\\calibration\\cc_final\\chess_test10.jpg"
+    ],
+    "nr_frames": 10
+}
