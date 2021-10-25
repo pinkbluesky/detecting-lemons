@@ -3,14 +3,16 @@ package frc.robot.subsystems;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+
+import java.util.HashMap;
+import java.util.Map;
+
 import edu.wpi.cscore.CvSink;
 import edu.wpi.cscore.CvSource;
 
 public class VisionSubsystem extends SubsystemBase {
     private CvSink cvSink;
-    private CvSource outputStream;
-    private CvSource outputStream2;
-    private CvSource outputStream3;
+    private Map<String, CvSource> outputStreamMap;
 
     public VisionSubsystem() {
         CommandScheduler.getInstance().registerSubsystem(this); // allows periodic
@@ -28,16 +30,19 @@ public class VisionSubsystem extends SubsystemBase {
         return cvSink;
     }
 
-    public CvSource getOutputStream() {
-        return outputStream;
-    }
+    public CvSource getOutputStream(String name) {
 
-    public CvSource getOutputStream2() {
-        return outputStream2;
-    }
+        // if no camera stream with specified name exists
+        if (outputStreamMap.get(name) == null) {
+            // create a new stream and update the map
+            CvSource newStream = CameraServer.getInstance().putVideo(name, 640, 480);
+            outputStreamMap.put(name, newStream);
 
-    public CvSource getOutputStream3() {
-        return outputStream3;
+            return newStream;
+        }
+
+        // if exists, return the specified output stream
+        return outputStreamMap.get(name);
     }
 
     @Override
@@ -57,10 +62,9 @@ public class VisionSubsystem extends SubsystemBase {
         // Creates the CvSink and connects it to the UsbCamera
         cvSink = CameraServer.getInstance().getVideo();
 
-        // Creates the CvSource and MjpegServer [2] and connects them
-        outputStream = CameraServer.getInstance().putVideo("Output Stream", 640, 480);
-        outputStream2 = CameraServer.getInstance().putVideo("Output Stream 2", 640, 480);
-        outputStream3 = CameraServer.getInstance().putVideo("Output Stream 3", 640, 480);
+        // initialize output stream map, which will contain all created output streams
+        outputStreamMap = new HashMap<String, CvSource>();
+
     }
 
 }

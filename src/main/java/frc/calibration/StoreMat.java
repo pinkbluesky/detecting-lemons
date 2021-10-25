@@ -87,9 +87,9 @@ public class StoreMat {
 
             JSONObject jsonObject = (JSONObject) parser.parse(reader);
 
-            int rows = ((Integer) jsonObject.get("rows")).intValue();
-            int cols = ((Integer) jsonObject.get("cols")).intValue();
-            int type = ((Integer) jsonObject.get("type")).intValue();
+            int rows = ((Long) jsonObject.get("rows")).intValue();
+            int cols = ((Long) jsonObject.get("cols")).intValue();
+            int type = ((Long) jsonObject.get("type")).intValue();
 
             String dataString = jsonObject.get("data").toString();
 
