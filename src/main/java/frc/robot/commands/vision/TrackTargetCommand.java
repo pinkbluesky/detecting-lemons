@@ -3,8 +3,6 @@ package frc.robot.commands.vision;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.fasterxml.jackson.databind.module.SimpleAbstractTypeResolver;
-
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
@@ -13,10 +11,8 @@ import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
-import org.opencv.features2d.SimpleBlobDetector;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.imgproc.Moments;
-import org.opencv.videoio.VideoCapture;
 
 import edu.wpi.first.wpilibj2.command.CommandBase;
 import frc.calibration.CameraCalibration;
