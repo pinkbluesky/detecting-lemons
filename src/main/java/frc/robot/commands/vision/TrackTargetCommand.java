@@ -3,6 +3,8 @@ package frc.robot.commands.vision;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.databind.module.SimpleAbstractTypeResolver;
+
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
@@ -11,7 +13,10 @@ import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
+import org.opencv.features2d.SimpleBlobDetector;
 import org.opencv.imgproc.Imgproc;
+import org.opencv.imgproc.Moments;
+import org.opencv.videoio.VideoCapture;
 
 import edu.wpi.first.wpilibj2.command.CommandBase;
 import frc.calibration.CameraCalibration;
@@ -28,18 +33,35 @@ public class TrackTargetCommand extends CommandBase {
 
     private HSVConfigTab hsvTab;
 
+    private static final Mat kernel = new Mat(3, 3, CvType.CV_8U);
+
+    private Mat cameraMatrix;
+    private Mat distCoeffs;
+
+    /**
+     * Command that tracks a lemon target and writes coordinates on the screen. Can
+     * adjust HSV values through the Shuffleboard GUI for fine-tuning.
+     * 
+     * @param visionSubsystem the vision subsystem
+     */
     public TrackTargetCommand(VisionSubsystem visionSubsystem) {
         this.visionSubsystem = visionSubsystem;
         addRequirements(visionSubsystem);
 
         image = new Mat();
 
+        // create shuffleboard tab for changing hsv values
         hsvTab = new HSVConfigTab(HSV_CONFIG_FILE_PATH, "Lemon Detection");
+
+        // get camera matrix and dist coefficients
+        this.cameraMatrix = StoreMat.readMat(CameraCalibration.CAMERA_MATRIX_FILE_PATH);
+        this.distCoeffs = StoreMat.readMat(CameraCalibration.DIST_COEFFS_FILE_PATH);
 
     }
 
     @Override
     public void initialize() {
+        // initialize the HSV config tab
         hsvTab.init();
     }
 
@@ -53,83 +75,85 @@ public class TrackTargetCommand extends CommandBase {
 
             // undistort the image
             Mat undistImg = new Mat();
-            // obtain camera matrix and dist coefficients
-            Mat cameraMatrix = StoreMat.readMat(CameraCalibration.CAMERA_MATRIX_FILE_PATH);
-            Mat distCoeffs = StoreMat.readMat(CameraCalibration.DIST_COEFFS_FILE_PATH);
             Imgproc.undistort(image, undistImg, cameraMatrix, distCoeffs);
 
-            // colored object detection using hough circles
-            // (https://docs.opencv.org/4.5.3/da/d22/tutorial_py_canny.html) and
-            // (https://stackoverflow.com/questions/38827505/detecting-colored-circle-and-its-center-using-opencv)
-
-            // first: gaussian blur
+            // gaussian blur
             Mat blurImg = new Mat();
             Imgproc.GaussianBlur(undistImg, blurImg, new Size(3, 3), 0);
 
-            // second: convert from RGB to HSV and filter for yellow
+            // convert from RGB to HSV and filter for yellow
             Mat hsvImg = new Mat();
             Imgproc.cvtColor(blurImg, hsvImg, Imgproc.COLOR_BGR2HSV);
 
             Mat colorThreshImg = new Mat();
             Core.inRange(hsvImg, hsvTab.getLowScalar(), hsvTab.getHighScalar(), colorThreshImg);
 
-            // third: color mask
+            // color mask
             Mat colorMaskedImg = new Mat();
-            // uses the color thresh image as a mask over the original frame from video
             Core.bitwise_and(blurImg, blurImg, colorMaskedImg, colorThreshImg);
 
-            // fourth: convert to grayscale (hough circles is meant to be used on grayscale
-            // images)
-            Mat grayscaleImg = new Mat();
-            Imgproc.cvtColor(colorMaskedImg, grayscaleImg, Imgproc.COLOR_BGR2GRAY);
+            // dilate then erode to remove tiny blobs (thanks kepler)
+            Mat temp = new Mat();
+            Imgproc.dilate(colorMaskedImg, temp, kernel, new Point(-1, -1), 1, Core.BORDER_DEFAULT);
+            Imgproc.erode(temp, colorMaskedImg, kernel, new Point(-1, -1), 6);
+            Imgproc.dilate(colorMaskedImg, temp, kernel, new Point(-1, -1), 1, Core.BORDER_DEFAULT);
 
-            // fifth: edge detection
+            // edge detection
             Mat cannyEdgeImg = new Mat();
-            Imgproc.Canny(grayscaleImg, cannyEdgeImg, 50, 100, 3);
+            Imgproc.Canny(temp, cannyEdgeImg, 200, 300, 3);
 
-            // sixth: find circles and draw them on the image
-            Mat circles = new Mat();
-            Imgproc.HoughCircles(cannyEdgeImg, circles, Imgproc.HOUGH_GRADIENT, 1.0, (double) cannyEdgeImg.rows() / 10,
-                    100.0, 30.0, 70, 150);
+            // find contours
+            List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+            Imgproc.findContours(cannyEdgeImg, contours, new Mat(), Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_SIMPLE);
 
-            for (int x = 0; x < circles.cols(); x++) {
-                double[] c = circles.get(0, x);
-                Point center = new Point(Math.round(c[0]), Math.round(c[1]));
+            // approximates polygons from contours
+            for (MatOfPoint contour : contours) {
+                MatOfPoint2f approx = new MatOfPoint2f();
+                MatOfPoint2f c = new MatOfPoint2f();
+                contour.convertTo(c, CvType.CV_32FC2);
+                Imgproc.approxPolyDP(c, approx, Imgproc.arcLength(c, true) * 0.02, true);
 
-                // draw circle center
-                Imgproc.circle(undistImg, center, 1, new Scalar(255, 0, 255), 3, 8, 0);
+                // if polygon has enough vertices and area to be considered a lemon
+                if (approx.total() >= 10 && approx.total() <= 30 && Imgproc.contourArea(contour) > 800) {
+                    // calculate center
+                    // https://www.pyimagesearch.com/2016/02/01/opencv-center-of-contour/
+                    Moments moments = Imgproc.moments(contour);
+                    Point center = new Point(moments.get_m10() / moments.get_m00(),
+                            moments.get_m01() / moments.get_m00());
 
-                // draw circle outline
-                int radius = (int) Math.round(c[2]);
-                Imgproc.circle(undistImg, center, radius, new Scalar(255, 0, 255), 3, 8, 0);
+                    // draw center point
+                    Imgproc.circle(undistImg, center, 5, new Scalar(255, 0, 255), 3, 8, 0);
+                    // draw all contours
+                    Imgproc.drawContours(undistImg, contours, -1, new Scalar(0, 255, 0));
 
-                // calculate world coordinates of center point
-                double[] cameraPoints = { center.x, center.y, 1 };
-                Mat cameraXYZ = new Mat(3, 1, cameraMatrix.type());
-                cameraXYZ.put(0, 0, cameraPoints);
+                    // calculate world coordinates of center point
+                    double[] cameraPoints = { center.x, center.y, 1 };
+                    Mat cameraXYZ = new Mat(3, 1, cameraMatrix.type());
+                    cameraXYZ.put(0, 0, cameraPoints);
 
-                // Mat cameraMatrixT = new Mat();
-                // Core.transpose(cameraMatrix, cameraMatrixT);
-                Mat worldXYZ = new Mat();
-                Core.gemm(cameraMatrix, cameraXYZ, 1, new Mat(), 0, worldXYZ);
+                    Mat worldXYZ = new Mat();
+                    Core.gemm(cameraMatrix, cameraXYZ, 1, new Mat(), 0, worldXYZ);
 
-                String coordText = "(" + worldXYZ.get(0, 0)[0] + ", " + worldXYZ.get(1, 0)[0] + ", "
-                        + worldXYZ.get(2, 0)[0] + ")";
-                Imgproc.putText(undistImg, coordText, center, Core.FONT_HERSHEY_PLAIN, 2, new Scalar(255, 0, 255));
+                    // write coordinates on output stream
+                    String coordText = "(" + worldXYZ.get(0, 0)[0] / 1000 + ", " + worldXYZ.get(1, 0)[0] / 1000 + ", "
+                            + worldXYZ.get(2, 0)[0] + ")";
+                    Imgproc.putText(undistImg, coordText, center, Core.FONT_HERSHEY_PLAIN, 1, new Scalar(255, 0, 255));
 
-                System.out.println(coordText);
+                }
             }
 
             // put images on output stream
-            visionSubsystem.getOutputStream("Original Stream").putFrame(image);
+            visionSubsystem.getOutputStream("Original Stream").putFrame(colorMaskedImg);
             visionSubsystem.getOutputStream("Canny Edge Stream").putFrame(cannyEdgeImg);
-            visionSubsystem.getOutputStream("Undistorted Stream").putFrame(undistImg);
+            visionSubsystem.getOutputStream("Undistorted Stream").putFrame(undistImg); // the stream with annotated
+                                                                                       // coordinates
         }
     }
 
     @Override
     public boolean isFinished() {
         return false;
+
     }
 
     /**
@@ -137,9 +161,8 @@ public class TrackTargetCommand extends CommandBase {
      */
     @Override
     public void end(boolean interrupted) {
-
-        // save HSV values from Shuffleboard slider into config file
+        // save HSV values from Shuffleboard slider into config file (this doesn't work
+        // because this command never ends)
         hsvTab.save();
-
     }
 }

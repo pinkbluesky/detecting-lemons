@@ -37,7 +37,7 @@ import org.opencv.imgcodecs.Imgcodecs;
 
 public class CameraCalibration {
 
-    public static final String CALIB_CONFIG_FILE_PATH = "src/main/java/frc/calibration/cc_final/calibration_config.json";
+    public static final String CALIB_CONFIG_FILE_PATH = "src/main/java/frc/calibration/cc_evelyn/calibration_config.json";
     public static final String CAMERA_MATRIX_FILE_PATH = "src/main/java/frc/calibration/camera_matrices.json";
     public static final String DIST_COEFFS_FILE_PATH = "src/main/java/frc/calibration/dist_coeffs.json";
 

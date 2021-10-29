@@ -10,6 +10,9 @@ import java.util.Map;
 import edu.wpi.cscore.CvSink;
 import edu.wpi.cscore.CvSource;
 
+// watershed transform for overlapping
+// contours--> # vertices
+// or blob detection
 public class VisionSubsystem extends SubsystemBase {
     private CvSink cvSink;
     private Map<String, CvSource> outputStreamMap;
