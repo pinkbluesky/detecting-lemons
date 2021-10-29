@@ -23,16 +23,22 @@ public class TrackTargetCommand extends CommandBase {
 
     private final VisionSubsystem visionSubsystem;
 
+    // stores the image from the camera stream
     private Mat image;
 
+    // filepath to configured HSV range values
     public static final String HSV_CONFIG_FILE_PATH = "src/main/java/frc/robot/commands/vision/lemon_config.json";
 
+    // Shuffleboard tab for adjusting HSV values
     private HSVConfigTab hsvTab;
 
+    // kernel used when reducing image noise (stored here to save memory)
     private static final Mat kernel = new Mat(3, 3, CvType.CV_8U);
 
-    private Mat cameraMatrix;
-    private Mat distCoeffs;
+    // camera matrix and distortion coefficients
+    // stored here so we don't have to get them over and over again for every frame
+    private final Mat cameraMatrix;
+    private final Mat distCoeffs;
 
     /**
      * Command that tracks a lemon target and writes coordinates on the screen. Can
@@ -152,13 +158,7 @@ public class TrackTargetCommand extends CommandBase {
 
     }
 
-    /**
-     * 
-     */
     @Override
     public void end(boolean interrupted) {
-        // save HSV values from Shuffleboard slider into config file (this doesn't work
-        // because this command never ends)
-        hsvTab.save();
     }
 }

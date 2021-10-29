@@ -10,9 +10,6 @@ import java.util.Map;
 import edu.wpi.cscore.CvSink;
 import edu.wpi.cscore.CvSource;
 
-// watershed transform for overlapping
-// contours--> # vertices
-// or blob detection
 public class VisionSubsystem extends SubsystemBase {
     private CvSink cvSink;
     private Map<String, CvSource> outputStreamMap;
@@ -33,6 +30,12 @@ public class VisionSubsystem extends SubsystemBase {
         return cvSink;
     }
 
+    /**
+     * Returns the desired output stream or creates one if it doesn't already exist.
+     * 
+     * @param name name of the output stream
+     * @return a CvSource object representing the stream
+     */
     public CvSource getOutputStream(String name) {
 
         // if no camera stream with specified name exists
@@ -51,13 +54,12 @@ public class VisionSubsystem extends SubsystemBase {
     @Override
     public void simulationPeriodic() {
         // This method will be called once per scheduler run during simulation
-        System.out.print("");
     }
 
+    /**
+     * Starts the input stream and output streams.
+     */
     public void startStreams() {
-
-        // final String cameraName =
-        // "\\\\?\\usb#vid_05a3&pid_9230&mi_00#7&2cb608c4&0&0000#{e5323777-f976-4f5b-9b55-b94699c46e44}\\global";
 
         CameraServer.getInstance().startAutomaticCapture(); // webcam
         CameraServer.getInstance().startAutomaticCapture(1); // leftside usb
