@@ -116,7 +116,7 @@ public class TrackTargetCommand extends CommandBase {
                 Imgproc.approxPolyDP(c, approx, Imgproc.arcLength(c, true) * 0.02, true);
 
                 // if polygon has enough vertices and area to be considered a lemon
-                if (approx.total() >= 10 && Imgproc.contourArea(contour) > 300) {
+                if (approx.total() >= 10 && Imgproc.contourArea(contour) > 100) {
                     // calculate center
                     // https://www.pyimagesearch.com/2016/02/01/opencv-center-of-contour/
                     Moments moments = Imgproc.moments(contour);
@@ -140,6 +140,8 @@ public class TrackTargetCommand extends CommandBase {
                     String coordText = "(" + worldXYZ.get(0, 0)[0] / 1000 + ", " + worldXYZ.get(1, 0)[0] / 1000 + ", "
                             + worldXYZ.get(2, 0)[0] + ")";
                     Imgproc.putText(image, coordText, center, Core.FONT_HERSHEY_PLAIN, 1, new Scalar(255, 0, 255));
+
+                    System.out.println(center.x + ", " + center.y);
 
                 }
             }
