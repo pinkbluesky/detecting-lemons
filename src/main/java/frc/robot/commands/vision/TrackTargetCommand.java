@@ -76,12 +76,12 @@ public class TrackTargetCommand extends CommandBase {
         if (!image.empty()) {
 
             // undistort the image
-            Mat undistImg = new Mat();
-            Imgproc.undistort(image, undistImg, cameraMatrix, distCoeffs);
+            // Mat undistImg = new Mat();
+            // Imgproc.undistort(image, undistImg, cameraMatrix, distCoeffs);
 
             // gaussian blur
             Mat blurImg = new Mat();
-            Imgproc.GaussianBlur(undistImg, blurImg, new Size(3, 3), 0);
+            Imgproc.GaussianBlur(image, blurImg, new Size(3, 3), 0);
 
             // convert from RGB to HSV and filter for yellow
             Mat hsvImg = new Mat();
@@ -116,7 +116,7 @@ public class TrackTargetCommand extends CommandBase {
                 Imgproc.approxPolyDP(c, approx, Imgproc.arcLength(c, true) * 0.02, true);
 
                 // if polygon has enough vertices and area to be considered a lemon
-                if (approx.total() >= 10 && approx.total() <= 30 && Imgproc.contourArea(contour) > 800) {
+                if (approx.total() >= 10 && Imgproc.contourArea(contour) > 300) {
                     // calculate center
                     // https://www.pyimagesearch.com/2016/02/01/opencv-center-of-contour/
                     Moments moments = Imgproc.moments(contour);
@@ -124,9 +124,9 @@ public class TrackTargetCommand extends CommandBase {
                             moments.get_m01() / moments.get_m00());
 
                     // draw center point
-                    Imgproc.circle(undistImg, center, 5, new Scalar(255, 0, 255), 3, 8, 0);
+                    Imgproc.circle(image, center, 5, new Scalar(255, 0, 255), 3, 8, 0);
                     // draw all contours
-                    Imgproc.drawContours(undistImg, contours, -1, new Scalar(0, 255, 0));
+                    Imgproc.drawContours(image, contours, -1, new Scalar(0, 255, 0));
 
                     // calculate world coordinates of center point
                     double[] cameraPoints = { center.x, center.y, 1 };
@@ -139,7 +139,7 @@ public class TrackTargetCommand extends CommandBase {
                     // write coordinates on output stream
                     String coordText = "(" + worldXYZ.get(0, 0)[0] / 1000 + ", " + worldXYZ.get(1, 0)[0] / 1000 + ", "
                             + worldXYZ.get(2, 0)[0] + ")";
-                    Imgproc.putText(undistImg, coordText, center, Core.FONT_HERSHEY_PLAIN, 1, new Scalar(255, 0, 255));
+                    Imgproc.putText(image, coordText, center, Core.FONT_HERSHEY_PLAIN, 1, new Scalar(255, 0, 255));
 
                 }
             }
@@ -147,8 +147,8 @@ public class TrackTargetCommand extends CommandBase {
             // put images on output stream
             visionSubsystem.getOutputStream("Original Stream").putFrame(colorMaskedImg);
             visionSubsystem.getOutputStream("Canny Edge Stream").putFrame(cannyEdgeImg);
-            visionSubsystem.getOutputStream("Undistorted Stream").putFrame(undistImg); // the stream with annotated
-                                                                                       // coordinates
+            visionSubsystem.getOutputStream("Undistorted Stream").putFrame(image); // the stream with annotated
+                                                                                   // coordinates
         }
     }
 
